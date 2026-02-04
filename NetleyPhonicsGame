@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phonics Assessment: Advanced</title>
+    <meta name="description" content="Netley Phonics — grapheme fluency & word blending assessment tool for teachers.">
+    <style>
+        :root {
+            --primary: #4A90E2;
+            --secondary: #9C27B0;
+            --success: #66BB6A;
+            --danger: #EF5350;
+            --bg: #F0F4F8;
+            --card-bg: #FFFFFF;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+            position: relative;
+        }
+
+        h1 { color: #333; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 30px; }
+
+        /* Setup Screen */
+        .input-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #444; }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        /* Game Screen */
+        #game-screen, #results-screen { display: none; }
+        
+        .flashcard {
+            background: #fff;
+            border: 4px solid var(--primary);
+            border-radius: 15px;
+            height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .flashcard.word-mode {
+            border-color: var(--secondary);
+            background-color: #fcf4fd;
+        }
+
+        .card-content {
+            font-size: 6rem;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .card-label {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            color: #888;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        button {
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            color: white;
+        }
+        button:active { transform: scale(0.98); }
+        
+        .btn-start { background-color: var(--primary); width: 100%; }
+        .btn-correct { background-color: var(--success); }
+        .btn-incorrect { background-color: var(--danger); }
+        .btn-download { background-color: #333; margin-top: 20px; }
+        
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .modal h2 { margin-top: 0; color: var(--danger); }
+        .modal-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 20px; }
+        .btn-continue { background-color: #888; }
+        .btn-stop { background-color: var(--danger); }
+
+        .progress { margin-bottom: 10px; font-size: 0.9rem; color: #888; }
+
+        /* Notes Input */
+        .notes-area { width: 100%; margin-bottom: 20px; }
+        .notes-area input {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: #fdfdfd;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Results Table */
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+            border: 1px solid #eee;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; font-size: 0.9rem;}
+        th { background: #f9f9f9; position: sticky; top: 0; }
+        .tag-correct { color: var(--success); font-weight: bold; }
+        .tag-incorrect { color: var(--danger); font-weight: bold; }
+        .type-tag { font-size: 0.75rem; padding: 3px 6px; border-radius: 4px; color: white; }
+        .type-grapheme { background-color: var(--primary); }
+        .type-word { background-color: var(--secondary); }
+
+    </style>
+</head>
+<body>
+
+    <div class="container" id="setup-screen">
+        <h1>Phonics Assessor</h1>
+        <p>Grapheme Fluency & Blending with Intervention Checks</p>
+        
+        <div class="input-group">
+            <label>Student Name:</label>
+            <input type="text" id="student-name" placeholder="Enter name">
+        </div>
+
+        <div class="input-group">
+            <label>Select Assessment Level:</label>
+            <select id="phase-select">
+                <option value="2-seq">Phase 2 (Standard Order)</option>
+                <option value="2-rand">Phase 2 (Randomized Order)</option>
+                <option value="3-seq">Phase 3 (Standard Order)</option>
+                <option value="3-rand">Phase 3 (Randomized Order)</option>
+                <option value="5-seq">Phase 5 (Standard Order)</option>
+                <option value="5-rand">Phase 5 (Randomized Order)</option>
+                <option value="all">Full Assessment (Progressive)</option>
+            </select>
+        </div>
+
+        <button class="btn-start" onclick="startGame()">Start Assessment</button>
+    </div>
+
+    <div class="container" id="game-screen">
+        <div class="progress" id="progress-text">Card 1 of 20</div>
+        
+        <div class="flashcard" id="flashcard-container">
+            <span class="card-label" id="card-type-label">GRAPHEME</span>
+            <div class="card-content" id="card-display">s</div>
+        </div>
+        
+        <div class="notes-area">
+            <input type="text" id="teacher-notes" placeholder="Teacher notes (optional)... e.g. 'sounded out loud'">
+        </div>
+
+        <div class="controls">
+            <button class="btn-incorrect" onclick="submitAnswer(false)">Incorrect (x)</button>
+            <button class="btn-correct" onclick="submitAnswer(true)">Correct (✓)</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="alert-modal">
+        <div class="modal">
+            <h2>⚠️ Assessment Paused</h2>
+            <p id="alert-reason">Reason goes here.</p>
+            <p>Would you like to stop here to prevent student distress?</p>
+            <div class="modal-buttons">
+                <button class="btn-continue" onclick="closeModal()">Continue</button>
+                <button class="btn-stop" onclick="endGame()">End Assessment</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="results-screen">
+        <h1>Assessment Complete</h1>
+        <p id="summary-text">Accuracy: 80%</p>
+        
+        <div class="table-container">
+            <table id="results-table">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Item</th>
+                        <th>Result</th>
+                        <th>Time</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <button class="btn-download" onclick="downloadCSV()">Download Report (.CSV)</button>
+        <button class="btn-start" style="margin-top: 10px; background-color: #999;" onclick="location.reload()">New Assessment</button>
+    </div>
+
+    <script>
+        const phases = {
+            2: {
+                graphemes: ['s','a','t','p','i','n','m','d','g','o','c','k','ck','e','u','r','h','b','f','ff','l','ll','ss'],
+                words: ['pat', 'sit', 'dad', 'sock', 'mud', 'puff', 'rocket', 'sunset']
+            },
+            3: {
+                graphemes: ['j','v','w','x','y','z','zz','qu','ch','sh','th','ng','ai','ee','igh','oa','oo','ar','or','ur','ow','oi','ear','air','ure','er'],
+                words: ['chip', 'shop', 'song', 'wait', 'night', 'farm', 'fork', 'town', 'coin', 'chair']
+            },
+            5: {
+                graphemes: ['ay','ou','ie','ea','oy','ir','ue','aw','wh','ph','ew','oe','au','a-e','e-e','i-e','o-e','u-e'],
+                words: ['crayon', 'cloud', 'pie', 'meat', 'boy', 'bird', 'glue', 'saw', 'nephew', 'bone']
+            }
+        };
+
+        let currentQueue = [];
+        let currentIndex = 0;
+        let results = [];
+        let answerHistory = []; // Stores boolean true/false for struggle detection
+        let cardStartTime = 0;
+        let studentName = "";
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if(document.getElementById('game-screen').style.display === 'block' && 
+               document.getElementById('alert-modal').style.display !== 'flex') {
+                
+                if(e.key === "ArrowRight") submitAnswer(true);
+                if(e.key === "ArrowLeft") submitAnswer(false);
+                if(document.activeElement.tagName === "INPUT" && e.key === "Enter") {
+                     document.activeElement.blur();
+                }
+            }
+        });
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function startGame() {
+            studentName = document.getElementById('student-name').value || "Student";
+            const val = document.getElementById('phase-select').value;
+            
+            currentQueue = [];
+            
+            if (val === 'all') {
+                [2, 3, 5].forEach(p => addToQueue(p, false));
+            } else {
+                const parts = val.split('-'); // e.g., ["2", "rand"]
+                const phaseNum = parseInt(parts[0]);
+                const randomized = parts[1] === 'rand';
+                addToQueue(phaseNum, randomized);
+            }
+
+            currentIndex = 0;
+            results = [];
+            answerHistory = [];
+
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            showNextCard();
+        }
+
+        function addToQueue(phaseNum, randomized) {
+            let gList = [...phases[phaseNum].graphemes];
+            let wList = [...phases[phaseNum].words];
+
+            if (randomized) {
+                gList = shuffleArray(gList);
+                wList = shuffleArray(wList);
+            }
+
+            gList.forEach(g => currentQueue.push({ content: g, type: 'Grapheme', phase: phaseNum }));
+            wList.forEach(w => currentQueue.push({ content: w, type: 'Word', phase: phaseNum }));
+        }
+
+        function showNextCard() {
+            if (currentIndex >= currentQueue.length) {
+                endGame();
+                return;
+            }
+
+            const card = currentQueue[currentIndex];
+            const cardEl = document.getElementById('flashcard-container');
+            
+            document.getElementById('card-display').innerText = card.content;
+            document.getElementById('card-type-label').innerText = `Phase ${card.phase} ${card.type}`;
+            
+            if(card.type === 'Word') {
+                cardEl.classList.add('word-mode');
+            } else {
+                cardEl.classList.remove('word-mode');
+            }
+
+            document.getElementById('progress-text').innerText = `Item ${currentIndex + 1} of ${currentQueue.length}`;
+            document.getElementById('teacher-notes').value = "";
+            document.getElementById('teacher-notes').focus();
+            
+            cardStartTime = Date.now();
+        }
+
+        function submitAnswer(isCorrect) {
+            const timeTaken = (Date.now() - cardStartTime) / 1000;
+            const notes = document.getElementById('teacher-notes').value;
+            
+            // Record data
+            results.push({
+                ...currentQueue[currentIndex],
+                correct: isCorrect,
+                time: timeTaken.toFixed(2),
+                notes: notes.replace(/,/g, ';')
+            });
+
+            // Update history for struggle detection
+            answerHistory.push(isCorrect);
+            
+            // Check for struggle BEFORE moving to next card
+            if (checkStruggle()) {
+                return; // Stop here, wait for modal interaction
+            }
+
+            currentIndex++;
+            showNextCard();
+        }
+
+        function checkStruggle() {
+            // 1. Check for 5 wrong in a row
+            const last5 = answerHistory.slice(-5);
+            if (last5.length === 5 && last5.every(val => val === false)) {
+                showAlert("The student has answered 5 incorrectly in a row.");
+                return true;
+            }
+
+            // 2. Check for >50% wrong in last 10
+            const last10 = answerHistory.slice(-10);
+            if (last10.length === 10) {
+                const wrongCount = last10.filter(val => val === false).length;
+                if (wrongCount > 5) { // More than 5 wrong out of 10
+                    showAlert("The student has answered more than 50% incorrectly in the last 10 items.");
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function showAlert(reason) {
+            document.getElementById('alert-reason').innerText = reason;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('alert-modal').style.display = 'none';
+            // Continue game
+            currentIndex++;
+            showNextCard();
+        }
+
+        function endGame() {
+            document.getElementById('alert-modal').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('results-screen').style.display = 'block';
+
+            const correctCount = results.filter(r => r.correct).length;
+            const percentage = results.length > 0 ? Math.round((correctCount / results.length) * 100) : 0;
+            
+            document.getElementById('summary-text').innerText = 
+                `${studentName} scored ${percentage}% (${correctCount}/${results.length})`;
+
+            const tbody = document.querySelector('#results-table tbody');
+            tbody.innerHTML = '';
+
+            results.forEach(r => {
+                const typeClass = r.type === 'Grapheme' ? 'type-grapheme' : 'type-word';
+                const row = `<tr>
+                    <td><span class="type-tag ${typeClass}">${r.type} (Ph${r.phase})</span></td>
+                    <td style="font-weight:bold; font-size:1.1rem">${r.content}</td>
+                    <td class="${r.correct ? 'tag-correct' : 'tag-incorrect'}">${r.correct ? 'Correct' : 'Incorrect'}</td>
+                    <td>${r.time}s</td>
+                    <td style="color:#666; font-style:italic;">${r.notes}</td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function downloadCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += `Student Name,${studentName}\n`;
+            csvContent += `Date,${new Date().toLocaleDateString()}\n\n`;
+            csvContent += "Phase,Type,Content,Result,Time (s),Notes\n";
+
+            results.forEach(r => {
+                csvContent += `Phase ${r.phase},${r.type},${r.content},${r.correct ? 'Correct' : 'Incorrect'},${r.time},"${r.notes}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `${studentName}_Phonics_Report.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
