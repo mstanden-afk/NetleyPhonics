@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phonics Assessment: Advanced</title>
-    <meta name="description" content="Netley Phonics — grapheme fluency & word blending assessment tool for teachers.">
+    <title>Phonics Assessment: Rapid Catch-up</title>
     <style>
         :root {
             --primary: #4A90E2;
@@ -60,7 +59,7 @@
             background: #fff;
             border: 4px solid var(--primary);
             border-radius: 15px;
-            height: 250px;
+            height: 300px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -90,6 +89,13 @@
             letter-spacing: 1px;
             font-weight: bold;
             color: #888;
+        }
+
+        .card-hint {
+            font-size: 1.2rem;
+            color: #666;
+            margin-top: 10px;
+            font-style: italic;
         }
 
         .controls {
@@ -174,7 +180,7 @@
 
     <div class="container" id="setup-screen">
         <h1>Phonics Assessor</h1>
-        <p>Grapheme Fluency & Blending with Intervention Checks</p>
+        <p>Grapheme Fluency & Blending Assessment</p>
         
         <div class="input-group">
             <label>Student Name:</label>
@@ -182,15 +188,17 @@
         </div>
 
         <div class="input-group">
-            <label>Select Assessment Level:</label>
+            <label>Select Assessment:</label>
             <select id="phase-select">
-                <option value="2-seq">Phase 2 (Standard Order)</option>
-                <option value="2-rand">Phase 2 (Randomized Order)</option>
-                <option value="3-seq">Phase 3 (Standard Order)</option>
-                <option value="3-rand">Phase 3 (Randomized Order)</option>
-                <option value="5-seq">Phase 5 (Standard Order)</option>
-                <option value="5-rand">Phase 5 (Randomized Order)</option>
-                <option value="all">Full Assessment (Progressive)</option>
+                <option value="rapid-catchup">Rapid Catch-up (Parts 1-5 Sequence)</option>
+                <optgroup label="Standard Progression">
+                    <option value="2-seq">Phase 2 (Standard)</option>
+                    <option value="2-rand">Phase 2 (Randomized)</option>
+                    <option value="3-seq">Phase 3 (Standard)</option>
+                    <option value="3-rand">Phase 3 (Randomized)</option>
+                    <option value="5-seq">Phase 5 (Standard)</option>
+                    <option value="5-rand">Phase 5 (Randomized)</option>
+                </optgroup>
             </select>
         </div>
 
@@ -203,6 +211,7 @@
         <div class="flashcard" id="flashcard-container">
             <span class="card-label" id="card-type-label">GRAPHEME</span>
             <div class="card-content" id="card-display">s</div>
+            <div class="card-hint" id="card-hint"></div>
         </div>
         
         <div class="notes-area">
@@ -235,7 +244,7 @@
             <table id="results-table">
                 <thead>
                     <tr>
-                        <th>Type</th>
+                        <th>Part</th>
                         <th>Item</th>
                         <th>Result</th>
                         <th>Time</th>
@@ -251,7 +260,65 @@
     </div>
 
     <script>
-        const phases = {
+        // Data derived from Little Wandle Rapid Catch-up 2025
+        const rapidCatchUpData = {
+            parts: [
+                {
+                    name: "Part 1: GPCs",
+                    type: "Grapheme",
+                    items: ['s','a','t','p','i','n','m','d','g','o','c','k','ck','e','u','r','h','b','l','f','j','v','w','y','x','z','qu','ch','sh','th','ng','nk']
+                },
+                {
+                    name: "Part 1: Words",
+                    type: "Word",
+                    items: ['mat', 'dig', 'red', 'sock', 'bell', 'mess', 'fox', 'yes', 'shell', 'wing', 'chip', 'wink', 'quack', 'ships', 'sings']
+                },
+                {
+                    name: "Part 2: GPCs",
+                    type: "Grapheme",
+                    items: ['ai','ee','igh','oa','oo','ar','oo','or','ur','ow','oi','ear','air','er'],
+                    hints: { 'oo': 'Check both pronunciations (moon/book)' }
+                },
+                {
+                    name: "Part 2: Words",
+                    type: "Word",
+                    items: ['wait', 'feel', 'light', 'coat', 'food', 'park', 'down', 'hammer', 'morning', 'wood', 'join', 'puppet', 'garden', 'born', 'hear', 'rubbish', 'fishes', 'lightning', 'rooftop']
+                },
+                {
+                    name: "Part 3: Phase 4 Words",
+                    type: "Word",
+                    items: ['tent', 'truck', 'stamp', 'strong', 'sprint', 'toast', 'growl', 'spear', 'screen', 'croaked', 'painted', 'smeared', 'brighter', 'greenest', 'painting', 'children', 'lunchbox', 'important']
+                },
+                {
+                    name: "Part 4: Phase 5 GPCs",
+                    type: "Grapheme",
+                    items: [
+                        {val: 'ay'}, {val: 'ou'}, {val: 'oy'}, {val: 'ea', hint: 'e.g. each'}, 
+                        {val: 'ir'}, {val: 'ue'}, {val: 'u', hint: 'e.g. unicorn'}, {val: 'ie', hint: 'e.g. pie'}, 
+                        {val: 'i', hint: 'e.g. tiger'}, {val: 'o', hint: 'e.g. go'}, {val: 'a', hint: 'e.g. paper'}, {val: 'e', hint: 'e.g. he'},
+                        {val: 'o-e'}, {val: 'a-e'}, {val: 'e-e'}, {val: 'i-e'}, {val: 'u-e'},
+                        {val: 'ew'}, {val: 'aw'}, {val: 'ie', hint: 'e.g. shield'}, {val: 'y', hint: 'e.g. funny'},
+                        {val: 'ea', hint: 'e.g. head'}, {val: 'wh'}, {val: 'y', hint: 'e.g. fly'}, {val: 'ow', hint: 'e.g. snow'},
+                        {val: 'ph'}, {val: 'le'}, {val: 'al'}, {val: 've'}, {val: 'ey'}, {val: 'are'},
+                        {val: 'ear', hint: 'e.g. bear'}, {val: 'ere'}, {val: 'au'}, {val: 'tch'}, {val: 'wr'},
+                        {val: 'kn'}, {val: 'gn'}, {val: 'mb'}, {val: 'eer'}, {val: 'dge'}, {val: 'ge'}
+                    ]
+                },
+                {
+                    name: "Part 5: Phase 5 Words",
+                    type: "Word",
+                    items: [
+                        'spray', 'cloud', 'joy', 'treat', 'skirt', 'clue', 'argue', 'music', 'pie', // Set 1
+                        'child', 'post', 'paper', 'secret', 'nose', 'frame', 'athlete', 'five', 'rude', 'cute', 'stew', 'draw', 'field', // Set 2
+                        'baby', 'feather', 'wheel', 'fly', 'toes', 'boulder', 'window', 'magic', 'photo', 'pencil', 'bottle', 'pedal', 'leave', 'glove', 'son', 'touch', 'noise', 'nurse', 'bounce', 'key', 'juice', 'soup', // Set 3
+                        'world', 'pudding', 'should', 'share', 'pear', 'there', 'sauce', 'dinosaur', 'floor', 'talk', 'small', 'kitchen', 'picture', 'palm', 'plant', 'wash', 'search', 'wrong', 'squeeze', 'whistle', 'science', 'chemist', 'chef', 'metre', 'flavour', 'celebrate', // Set 4
+                        'eight', 'straight', 'grey', 'break', 'knock', 'sign', 'climb', 'sphere', 'cheer', 'treasure', 'television', 'bridge', 'sponge', 'crystal', 'station', 'mission', 'mansion', 'delicious', 'caught', 'four', 'roar', 'snore' // Set 5
+                    ]
+                }
+            ]
+        };
+
+        const standardPhases = {
             2: {
                 graphemes: ['s','a','t','p','i','n','m','d','g','o','c','k','ck','e','u','r','h','b','f','ff','l','ll','ss'],
                 words: ['pat', 'sit', 'dad', 'sock', 'mud', 'puff', 'rocket', 'sunset']
@@ -269,7 +336,7 @@
         let currentQueue = [];
         let currentIndex = 0;
         let results = [];
-        let answerHistory = []; // Stores boolean true/false for struggle detection
+        let answerHistory = [];
         let cardStartTime = 0;
         let studentName = "";
 
@@ -300,13 +367,13 @@
             
             currentQueue = [];
             
-            if (val === 'all') {
-                [2, 3, 5].forEach(p => addToQueue(p, false));
+            if (val === 'rapid-catchup') {
+                loadRapidCatchUp();
             } else {
-                const parts = val.split('-'); // e.g., ["2", "rand"]
+                const parts = val.split('-'); 
                 const phaseNum = parseInt(parts[0]);
                 const randomized = parts[1] === 'rand';
-                addToQueue(phaseNum, randomized);
+                loadStandardPhase(phaseNum, randomized);
             }
 
             currentIndex = 0;
@@ -318,17 +385,41 @@
             showNextCard();
         }
 
-        function addToQueue(phaseNum, randomized) {
-            let gList = [...phases[phaseNum].graphemes];
-            let wList = [...phases[phaseNum].words];
+        function loadRapidCatchUp() {
+            rapidCatchUpData.parts.forEach(part => {
+                part.items.forEach(item => {
+                    let content = "";
+                    let hint = "";
+                    
+                    if(typeof item === 'object') {
+                        content = item.val;
+                        hint = item.hint || "";
+                    } else {
+                        content = item;
+                        if(part.hints && part.hints[content]) hint = part.hints[content];
+                    }
+
+                    currentQueue.push({
+                        content: content,
+                        type: part.type,
+                        phaseLabel: part.name,
+                        hint: hint
+                    });
+                });
+            });
+        }
+
+        function loadStandardPhase(phaseNum, randomized) {
+            let gList = [...standardPhases[phaseNum].graphemes];
+            let wList = [...standardPhases[phaseNum].words];
 
             if (randomized) {
                 gList = shuffleArray(gList);
                 wList = shuffleArray(wList);
             }
 
-            gList.forEach(g => currentQueue.push({ content: g, type: 'Grapheme', phase: phaseNum }));
-            wList.forEach(w => currentQueue.push({ content: w, type: 'Word', phase: phaseNum }));
+            gList.forEach(g => currentQueue.push({ content: g, type: 'Grapheme', phaseLabel: `Phase ${phaseNum}`, hint: '' }));
+            wList.forEach(w => currentQueue.push({ content: w, type: 'Word', phaseLabel: `Phase ${phaseNum}`, hint: '' }));
         }
 
         function showNextCard() {
@@ -341,7 +432,8 @@
             const cardEl = document.getElementById('flashcard-container');
             
             document.getElementById('card-display').innerText = card.content;
-            document.getElementById('card-type-label').innerText = `Phase ${card.phase} ${card.type}`;
+            document.getElementById('card-type-label').innerText = `${card.phaseLabel}`;
+            document.getElementById('card-hint').innerText = card.hint ? `(e.g. ${card.hint})` : "";
             
             if(card.type === 'Word') {
                 cardEl.classList.add('word-mode');
@@ -360,7 +452,6 @@
             const timeTaken = (Date.now() - cardStartTime) / 1000;
             const notes = document.getElementById('teacher-notes').value;
             
-            // Record data
             results.push({
                 ...currentQueue[currentIndex],
                 correct: isCorrect,
@@ -368,12 +459,10 @@
                 notes: notes.replace(/,/g, ';')
             });
 
-            // Update history for struggle detection
             answerHistory.push(isCorrect);
             
-            // Check for struggle BEFORE moving to next card
             if (checkStruggle()) {
-                return; // Stop here, wait for modal interaction
+                return; 
             }
 
             currentIndex++;
@@ -381,18 +470,16 @@
         }
 
         function checkStruggle() {
-            // 1. Check for 5 wrong in a row
             const last5 = answerHistory.slice(-5);
             if (last5.length === 5 && last5.every(val => val === false)) {
                 showAlert("The student has answered 5 incorrectly in a row.");
                 return true;
             }
 
-            // 2. Check for >50% wrong in last 10
             const last10 = answerHistory.slice(-10);
             if (last10.length === 10) {
                 const wrongCount = last10.filter(val => val === false).length;
-                if (wrongCount > 5) { // More than 5 wrong out of 10
+                if (wrongCount > 5) { 
                     showAlert("The student has answered more than 50% incorrectly in the last 10 items.");
                     return true;
                 }
@@ -407,7 +494,6 @@
 
         function closeModal() {
             document.getElementById('alert-modal').style.display = 'none';
-            // Continue game
             currentIndex++;
             showNextCard();
         }
@@ -429,7 +515,7 @@
             results.forEach(r => {
                 const typeClass = r.type === 'Grapheme' ? 'type-grapheme' : 'type-word';
                 const row = `<tr>
-                    <td><span class="type-tag ${typeClass}">${r.type} (Ph${r.phase})</span></td>
+                    <td><span class="type-tag ${typeClass}">${r.phaseLabel}</span></td>
                     <td style="font-weight:bold; font-size:1.1rem">${r.content}</td>
                     <td class="${r.correct ? 'tag-correct' : 'tag-incorrect'}">${r.correct ? 'Correct' : 'Incorrect'}</td>
                     <td>${r.time}s</td>
@@ -443,16 +529,16 @@
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += `Student Name,${studentName}\n`;
             csvContent += `Date,${new Date().toLocaleDateString()}\n\n`;
-            csvContent += "Phase,Type,Content,Result,Time (s),Notes\n";
+            csvContent += "Section,Type,Content,Result,Time (s),Notes\n";
 
             results.forEach(r => {
-                csvContent += `Phase ${r.phase},${r.type},${r.content},${r.correct ? 'Correct' : 'Incorrect'},${r.time},"${r.notes}"\n`;
+                csvContent += `${r.phaseLabel},${r.type},${r.content},${r.correct ? 'Correct' : 'Incorrect'},${r.time},"${r.notes}"\n`;
             });
 
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `${studentName}_Phonics_Report.csv`);
+            link.setAttribute("download", `${studentName}_Rapid_CatchUp_Report.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
